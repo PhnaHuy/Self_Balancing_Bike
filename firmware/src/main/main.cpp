@@ -4,13 +4,13 @@
 //
 // Vòng lặp điều khiển: 5ms (200Hz) — không có delay() chặn
 // Telemetry: 50ms (20Hz) qua HC-05 Bluetooth
-// Giao thức: M:speed,angle\n | P:kp,ki,kd\n | CAL\n | SAVE\n | D:angle,gyro,pwm\n
+// Giao thức: M:speed,angle\n | P:kp,ki,kd\n | CAL\n | SAVE\n | D:angle,gyro,nidec_frequency_hz\n
 //
 // Sơ đồ chân (tham chiếu config.h):
 //   MPU6050 : SDA=A4, SCL=A5 (I2C phần cứng)
 //   HC-05   : TX→D0(RX), RX→D1(TX) (UART phần cứng)
-//   Nidec   : DIR=D4, BRAKE=D5, PWM=D6 (Timer0)
-//   L298N   : ENA=D3(PWM/Timer2), IN1=D7, IN2=D8
+//   Nidec   : DIR=D4, BRAKE=D5, PFM=D3 (Timer2 OC2B)
+//   L298N   : ENA=D6(PWM/Timer0), IN1=D7, IN2=D8
 //   Servo   : D9 (Timer1, thư viện Servo.h)
 //   Nidec FG: D2 (INT0, chưa kích hoạt trong phiên bản cơ bản)
 // =============================================================================
@@ -152,7 +152,7 @@ void loop() {
             float pidOut = pid_compute(setpoint, imu.angle, imu.gyroRate, dt_s);
 
             // 8e. Đặt tốc độ bánh đà theo đầu ra PID
-            nidec_setSpeed((int16_t)pidOut);
+            nidec_setControlOutput((int16_t)pidOut);
 
             // 8f. Điều khiển bánh sau theo lệnh di chuyển
             l298n_setSpeed(g_moveSpeed);
@@ -163,7 +163,7 @@ void loop() {
     if ((nowMs - g_lastTeleMs) >= TELEMETRY_INTERVAL_MS) {
         g_lastTeleMs = nowMs;
         ImuData imu  = imu_getData();
-        comm_sendTelemetry(imu.angle, imu.gyroRate, nidec_getLastPwm());
+        comm_sendTelemetry(imu.angle, imu.gyroRate, nidec_getFrequencyHz());
     }
 }
 

@@ -17,8 +17,8 @@ public static class TelemetryParser
 
     /// <summary>
     /// Thử phân tích một dòng dữ liệu từ Serial thành đối tượng TelemetryData.
-    /// Hỗ trợ telemetry chuẩn D:<angle>,<gyro_rate>,<pwm_wheel> và output test_mpu6050.
-    /// Với output test_mpu6050, PWM được đặt bằng 0 vì firmware test không điều khiển motor.
+    /// Hỗ trợ telemetry chuẩn D:<angle>,<gyro_rate>,<nidec_frequency_hz> và output test_mpu6050.
+    /// Với output test_mpu6050, tần số được đặt bằng 0 vì firmware test không điều khiển motor.
     /// </summary>
     /// <param name="rawLine">Dòng chuỗi nhận từ Serial (đã loại bỏ \r, \n)</param>
     /// <param name="telemetry">Dữ liệu phân tích thành công (nếu có)</param>
@@ -43,18 +43,18 @@ public static class TelemetryParser
                 // Phân tích an toàn với CultureInfo.InvariantCulture (dấu chấm thập phân)
                 bool angleOk = float.TryParse(parts[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out float angle);
                 bool gyroOk = float.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out float gyroRate);
-                bool pwmOk = int.TryParse(parts[2].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int pwmWheel);
+                bool frequencyOk = int.TryParse(parts[2].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int frequencyHz);
 
-                // Nếu trường PWM dạng float (ví dụ 85.0), fallback parse float rồi ép kiểu
-                if (!pwmOk && float.TryParse(parts[2].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out float pwmFloat))
+                // Nếu trường tần số dạng float (ví dụ 1000.0), fallback parse rồi ép kiểu
+                if (!frequencyOk && float.TryParse(parts[2].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out float frequencyFloat))
                 {
-                    pwmWheel = (int)Math.Round(pwmFloat);
-                    pwmOk = true;
+                    frequencyHz = (int)Math.Round(frequencyFloat);
+                    frequencyOk = true;
                 }
 
-                if (angleOk && gyroOk && pwmOk)
+                if (angleOk && gyroOk && frequencyOk)
                 {
-                    telemetry = new TelemetryData(angle, gyroRate, pwmWheel, trimmed);
+                    telemetry = new TelemetryData(angle, gyroRate, frequencyHz, trimmed);
                     return true;
                 }
             }

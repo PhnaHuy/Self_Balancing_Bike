@@ -31,9 +31,9 @@ void comm_clearMoveCommand();
 // Lấy thời điểm cuối cùng nhận được lệnh M: (millis), dùng cho watchdog
 uint32_t comm_getLastCommandMs();
 
-// Phát bản tin telemetry D:angle,gyroRate,pwm\n lên HC-05
+// Phát bản tin telemetry D:angle,gyroRate,nidecFrequencyHz\n lên HC-05
 // format: "D:-0.45,1.20,85\n" — số thực dùng dấu chấm thập phân
-void comm_sendTelemetry(float angle, float gyroRate, int16_t pwm);
+void comm_sendTelemetry(float angle, float gyroRate, int16_t nidecFrequencyHz);
 
 // Phát thông điệp phản hồi hệ thống (OK, CAL_DONE, SAVE_DONE, ERROR, v.v.)
 // Tự động thêm \n vào cuối

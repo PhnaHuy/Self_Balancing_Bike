@@ -9,17 +9,16 @@
 //   SDA = A4,  SCL = A5
 
 // Nidec 24H055M020 — Bánh đà (Reaction Wheel)
-// Logic điều khiển Nidec 24H: PWM thấp = tốc độ cao, PWM=255 = dừng (đặc tính nghịch)
+// Tín hiệu PFM 50% duty, thay đổi tần số trên Timer2 OC2B / D3.
 // BRAKE = LOW  → nhả phanh (motor quay tự do)
 // BRAKE = HIGH → hãm phanh điện từ
-#define PIN_NIDEC_FG        2   // Feedback xung tốc độ (ngắt ngoài INT0, chưa dùng trong PID cơ bản)
 #define PIN_NIDEC_DIR       4   // Chiều quay: HIGH = tiến, LOW = lùi
 #define PIN_NIDEC_BRAKE     5   // Hãm phanh: HIGH = phanh, LOW = nhả
-#define PIN_NIDEC_PWM       6   // PWM điều tốc (Timer0 OC0A) — nghịch: 255=dừng, 0=full speed
+#define PIN_NIDEC_PFM       3   // Xung PFM 50% duty, Timer2 OC2B
 
 // L298N — Bánh sau (Drive Wheel, Motor giảm tốc)
 // IN1/IN2 xác định chiều, ENA = PWM tốc độ
-#define PIN_L298N_ENA       3   // PWM tốc độ bánh sau (Timer2 OC2B)
+#define PIN_L298N_ENA       6   // PWM tốc độ bánh sau (Timer0 OC0A)
 #define PIN_L298N_IN1       7   // Chiều quay H-Bridge In1
 #define PIN_L298N_IN2       8   // Chiều quay H-Bridge In2
 
@@ -49,11 +48,11 @@
 #define TILT_FAILSAFE_DEG   35.0f    // Góc nghiêng vượt ±35° → Fail-Safe ngắt toàn bộ
 #define INTEGRAL_CLAMP      150.0f   // Giới hạn tích phân chống windup
 
-// --- Giới hạn PWM đầu ra ---
-// Nidec 24H: PWM logic nghịch chiều, giá trị "nghỉ" = 255
-// PID output được ánh xạ: 0 → Nidec PWM 255 (dừng), ±max → 0/255 đảo chiều
-#define NIDEC_PWM_STOP      255   // Dừng hoàn toàn (đặc tính Nidec 24H)
-#define NIDEC_PWM_MAX_OUT   200   // Giới hạn PWM tối đa đầu ra PID (tránh quá dòng)
+// --- Giới hạn lệnh tốc độ Nidec ---
+#define NIDEC_CONTROL_OUTPUT_MAX 200
+#define NIDEC_MAX_FREQUENCY_HZ   10000
+#define NIDEC_MAX_RPM            1500
+#define NIDEC_DIRECTION_DEADTIME_US 5000UL
 
 // L298N bánh sau
 #define L298N_MAX_DUTY      180   // Giới hạn duty cycle tối đa (~70%) bảo vệ motor ở nguồn 3S 11.1V

@@ -603,7 +603,7 @@ partial class MainForm
         pbPwmLevel.Dock = DockStyle.Bottom;
         pbPwmLevel.Location = new Point(0, 100);
         pbPwmLevel.Margin = new Padding(3, 4, 3, 4);
-        pbPwmLevel.Maximum = 255;
+        pbPwmLevel.Maximum = 10000;
         pbPwmLevel.Name = "pbPwmLevel";
         pbPwmLevel.Size = new Size(173, 11);
         pbPwmLevel.TabIndex = 1;
@@ -617,7 +617,7 @@ partial class MainForm
         lblGaugePwmTitle.Name = "lblGaugePwmTitle";
         lblGaugePwmTitle.Size = new Size(173, 29);
         lblGaugePwmTitle.TabIndex = 2;
-        lblGaugePwmTitle.Text = "PWM BÁNH ĐÀ";
+        lblGaugePwmTitle.Text = "TẦN SỐ NIDEC";
         lblGaugePwmTitle.TextAlign = ContentAlignment.MiddleCenter;
         // 
         // pnlGaugeSafety

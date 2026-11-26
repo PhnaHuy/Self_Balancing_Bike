@@ -16,7 +16,7 @@ controller_app/
 │
 ├── Models/                       # Tầng mô hình dữ liệu (Data Models)
 │   ├── ConnectionState.cs        # Trạng thái kết nối Serial (Disconnected, Connecting, Connected)
-│   ├── TelemetryData.cs          # Bản tin phản hồi D:<angle>,<gyro_rate>,<pwm_wheel>\n
+│   ├── TelemetryData.cs          # Bản tin phản hồi D:<angle>,<gyro_rate>,<nidec_frequency_hz>\n
 │   └── PidParameters.cs          # Cấu trúc tham số Kp, Ki, Kd định dạng InvariantCulture
 │
 ├── Modules/                      # Tầng nghiệp vụ theo đặc tả hệ thống
@@ -51,7 +51,7 @@ Mọi bản tin đều tuân thủ nguyên tắc:
 | **PC ➔ Xe** | Cập nhật tham số PID | `P:<Kp>,<Ki>,<Kd>\n` | `P:35.00,0.60,1.25\n` |
 | **PC ➔ Xe** | Hiệu chuẩn góc cân bằng | `CAL\n` | `CAL\n` |
 | **PC ➔ Xe** | Lưu cấu hình vào EEPROM | `SAVE\n` | `SAVE\n` |
-| **Xe ➔ PC** | Bản tin phản hồi định kỳ | `D:<angle>,<gyro_rate>,<pwm_wheel>\n` | `D:-0.45,1.20,85\n` |
+| **Xe ➔ PC** | Bản tin phản hồi định kỳ | `D:<angle>,<gyro_rate>,<nidec_frequency_hz>\n` | `D:-0.45,1.20,1000\n` |
 
 ---
 

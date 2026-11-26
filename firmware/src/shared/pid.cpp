@@ -43,9 +43,9 @@ float pid_compute(float setpoint, float measurement, float gyroRate, float dt_s)
 
     float output = p + i + d;
 
-    // Clamp đầu ra tổng trong giới hạn an toàn PWM
-    if      (output >  (float)NIDEC_PWM_MAX_OUT) output =  (float)NIDEC_PWM_MAX_OUT;
-    else if (output < -(float)NIDEC_PWM_MAX_OUT) output = -(float)NIDEC_PWM_MAX_OUT;
+    // Clamp demand sent to the Nidec frequency controller.
+    if      (output >  (float)NIDEC_CONTROL_OUTPUT_MAX) output =  (float)NIDEC_CONTROL_OUTPUT_MAX;
+    else if (output < -(float)NIDEC_CONTROL_OUTPUT_MAX) output = -(float)NIDEC_CONTROL_OUTPUT_MAX;
 
     g_state.output   = output;
     g_state.prevError = error;

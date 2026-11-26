@@ -111,15 +111,15 @@ uint32_t comm_getLastCommandMs() {
     return g_lastCmdMs;
 }
 
-// Phát telemetry D:angle,gyroRate,pwm\n
-// Dùng dtostrf() thay cho Serial.print(float) để kiểm soát độ chính xác và tốc độ
-void comm_sendTelemetry(float angle, float gyroRate, int16_t pwm) {
+// Phát telemetry D:angle,gyroRate,nidecFrequencyHz\n
+// Dùng dtostrf() thay cho Serial.print(float) để kiểm soát độ chính xác và tốc độ.
+void comm_sendTelemetry(float angle, float gyroRate, int16_t nidecFrequencyHz) {
     char buf[48];
     char s_angle[8], s_gyro[8];
     dtostrf(angle,    5, 2, s_angle);
     dtostrf(gyroRate, 5, 2, s_gyro);
     // Dùng snprintf trên Arduino để tránh tràn buffer
-    snprintf(buf, sizeof(buf), "D:%s,%s,%d\n", s_angle, s_gyro, (int)pwm);
+    snprintf(buf, sizeof(buf), "D:%s,%s,%d\n", s_angle, s_gyro, (int)nidecFrequencyHz);
     Serial.print(buf);
 }
 

@@ -10,21 +10,19 @@
 void actuators_init();
 
 // --- Nidec 24H055M020 (Bánh đà / Reaction Wheel) ---
-// Điều khiển bằng tín hiệu PWM + DIR + BRAKE
-// Logic Nidec 24H: PWM 255 = DỪNG, PWM 0 = Full Speed
-//   Vì vậy: setSpeed âm = quay chiều thuận, dương = quay chiều ngược
-// targetSpeed: [-NIDEC_PWM_MAX_OUT, +NIDEC_PWM_MAX_OUT]
-void nidec_setSpeed(int16_t targetSpeed);
+// Điều khiển bằng PFM 50% duty + DIR + BRAKE.
+// controlOutput [-NIDEC_CONTROL_OUTPUT_MAX, +NIDEC_CONTROL_OUTPUT_MAX] ánh xạ sang 0..10kHz.
+void nidec_setControlOutput(int16_t controlOutput);
 
-// Hãm phanh điện từ tức thì (BRAKE=HIGH, PWM=255)
+// Hãm phanh điện từ tức thì (BRAKE=HIGH, không phát xung PFM)
 // Dùng khi fail-safe hoặc dừng khẩn cấp
 void nidec_brake();
 
-// Nhả phanh, motor quay tự do (BRAKE=LOW, PWM=255)
+// Nhả phanh, motor quay tự do (BRAKE=LOW, không phát xung PFM)
 void nidec_coast();
 
-// Lấy giá trị PWM thực đang xuất ra (0–255, ánh xạ từ targetSpeed)
-int16_t nidec_getLastPwm();
+// Lấy tần số PFM có dấu hiện đang yêu cầu (Hz; dấu biểu thị chiều quay)
+int16_t nidec_getFrequencyHz();
 
 // --- L298N (Bánh sau / Drive Wheel) ---
 // speed: [-L298N_MAX_DUTY, +L298N_MAX_DUTY], 0 = dừng

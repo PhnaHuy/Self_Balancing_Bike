@@ -56,14 +56,14 @@ static class Program
         // --- TEST MODULE M3: TelemetryParser ---
         Console.WriteLine("--- Kiểm thử Module M3: TelemetryParser ---");
         
-        // Test 1: Parse chuẩn bản tin D:<angle>,<gyro_rate>,<pwm_wheel>
-        bool t1Ok = TelemetryParser.TryParse("D:-0.45,1.20,85", out var t1);
-        Assert(t1Ok && t1 != null && Math.Abs(t1.Angle - (-0.45f)) < 0.001f && Math.Abs(t1.GyroRate - 1.20f) < 0.001f && t1.PwmWheel == 85,
-            "M3.1: Parse bản tin telemetry chuẩn 'D:-0.45,1.20,85'");
+        // Test 1: Parse chuẩn bản tin D:<angle>,<gyro_rate>,<nidec_frequency_hz>
+        bool t1Ok = TelemetryParser.TryParse("D:-0.45,1.20,1000", out var t1);
+        Assert(t1Ok && t1 != null && Math.Abs(t1.Angle - (-0.45f)) < 0.001f && Math.Abs(t1.GyroRate - 1.20f) < 0.001f && t1.NidecFrequencyHz == 1000,
+            "M3.1: Parse telemetry góc, gyro và tần số PFM");
 
         // Test 2: Parse kèm khoảng trắng và \r
-        bool t2Ok = TelemetryParser.TryParse("  D:15.35,-4.20,-128\r  ", out var t2);
-        Assert(t2Ok && t2 != null && Math.Abs(t2.Angle - 15.35f) < 0.001f && t2.PwmWheel == -128,
+        bool t2Ok = TelemetryParser.TryParse("  D:15.35,-4.20,-2000\r  ", out var t2);
+        Assert(t2Ok && t2 != null && Math.Abs(t2.Angle - 15.35f) < 0.001f && t2.NidecFrequencyHz == -2000,
             "M3.2: Parse bản tin telemetry có khoảng trắng và ký tự \\r");
 
         // Test 3: Phát hiện ngưỡng cảnh báo ngã (|Angle| >= 35.0°)
@@ -87,13 +87,13 @@ static class Program
         // Test 6: Nhận telemetry từ firmware test_mpu6050 ở cả hai chế độ
         bool t6FullOk = TelemetryParser.TryParse("RAW:163,0,16383,0,131,0 | ANGLE:  1.25deg | GYRO:  1.00dps", out var t6Full);
         Assert(t6FullOk && t6Full != null && Math.Abs(t6Full.Angle - 1.25f) < 0.001f
-            && Math.Abs(t6Full.GyroRate - 1.0f) < 0.001f && t6Full.PwmWheel == 0
+            && Math.Abs(t6Full.GyroRate - 1.0f) < 0.001f && t6Full.NidecFrequencyHz == 0
             && !TelemetryParser.IsSystemMessage("RAW:163,0,16383,0,131,0 | ANGLE:  1.25deg | GYRO:  1.00dps"),
             "M3.6a: Parse output đầy đủ của test_mpu6050 và nhận diện là telemetry");
 
         bool t6CompactOk = TelemetryParser.TryParse("ANGLE:  1.25  GYRO:  1.00", out var t6Compact);
         Assert(t6CompactOk && t6Compact != null && Math.Abs(t6Compact.Angle - 1.25f) < 0.001f
-            && Math.Abs(t6Compact.GyroRate - 1.0f) < 0.001f && t6Compact.PwmWheel == 0,
+            && Math.Abs(t6Compact.GyroRate - 1.0f) < 0.001f && t6Compact.NidecFrequencyHz == 0,
             "M3.6b: Parse output compact của test_mpu6050");
 
         // --- TEST MODULE M2: PID & CultureInfo.InvariantCulture ---

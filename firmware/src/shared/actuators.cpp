@@ -3,16 +3,22 @@
 // =============================================================================
 #include "actuators.h"
 #include "config.h"
+#include "nidec_pfm.h"
 #include <Servo.h>
 
 static Servo   g_servo;
-static int16_t g_nidecLastPwm = NIDEC_PWM_STOP;
+static int16_t g_nidecFrequencyHz = 0;
+static bool    g_nidecDirection = true;
+static bool    g_nidecDirectionPending = false;
+static uint32_t g_nidecDirectionChangedUs = 0;
 
 void actuators_init() {
     // --- Nidec 24H055M020 ---
     pinMode(PIN_NIDEC_DIR,   OUTPUT);
     pinMode(PIN_NIDEC_BRAKE, OUTPUT);
-    pinMode(PIN_NIDEC_PWM,   OUTPUT);
+    nidec_pfm_init();
+    digitalWrite(PIN_NIDEC_DIR, HIGH);
+    g_nidecDirection = true;
 
     // Trạng thái an toàn ban đầu: hãm phanh, dừng
     nidec_brake();
@@ -31,61 +37,70 @@ void actuators_init() {
 
 // =============================================================================
 // Nidec 24H055M020
-// Logic PWM nghịch: giá trị PWM nhỏ → tốc độ cao; 255 → dừng
-// DIR HIGH = quay một chiều, LOW = chiều ngược
+// Tần số PFM quyết định tốc độ; duty cycle được cố định 50% bởi bộ định thời.
 // BRAKE HIGH = hãm điện từ, BRAKE LOW = nhả
 // =============================================================================
-void nidec_setSpeed(int16_t targetSpeed) {
-    // Clamp đầu vào
-    if      (targetSpeed >  (int16_t)NIDEC_PWM_MAX_OUT) targetSpeed =  (int16_t)NIDEC_PWM_MAX_OUT;
-    else if (targetSpeed < -(int16_t)NIDEC_PWM_MAX_OUT) targetSpeed = -(int16_t)NIDEC_PWM_MAX_OUT;
+void nidec_setControlOutput(int16_t controlOutput) {
+    controlOutput = (int16_t)constrain(controlOutput, -NIDEC_CONTROL_OUTPUT_MAX, NIDEC_CONTROL_OUTPUT_MAX);
 
     // Nhả phanh để motor quay
     digitalWrite(PIN_NIDEC_BRAKE, LOW);
 
-    if (targetSpeed == 0) {
-        // Dừng: PWM = STOP (255 = không xung → motor tự giữ theo đặc tính Nidec)
-        analogWrite(PIN_NIDEC_PWM, NIDEC_PWM_STOP);
-        g_nidecLastPwm = NIDEC_PWM_STOP;
+    if (controlOutput == 0) {
+        nidec_pfm_stop();
+        g_nidecFrequencyHz = 0;
+        g_nidecDirectionPending = false;
         return;
     }
 
-    // Ánh xạ |targetSpeed| → PWM thực tế (nghịch chiều)
-    // targetSpeed = NIDEC_PWM_MAX_OUT → PWM thực = 255 - NIDEC_PWM_MAX_OUT (gần 0 = full speed)
-    uint8_t pwmValue = (uint8_t)(NIDEC_PWM_STOP - constrain(abs(targetSpeed), 0, NIDEC_PWM_MAX_OUT));
-
-    if (targetSpeed > 0) {
-        digitalWrite(PIN_NIDEC_DIR, HIGH);
-    } else {
-        digitalWrite(PIN_NIDEC_DIR, LOW);
+    bool requestedDirection = controlOutput > 0;
+    if (requestedDirection != g_nidecDirection) {
+        nidec_pfm_stop();
+        g_nidecFrequencyHz = 0;
+        digitalWrite(PIN_NIDEC_DIR, requestedDirection ? HIGH : LOW);
+        g_nidecDirection = requestedDirection;
+        g_nidecDirectionPending = true;
+        g_nidecDirectionChangedUs = micros();
+        return;
     }
 
-    analogWrite(PIN_NIDEC_PWM, pwmValue);
-    g_nidecLastPwm = pwmValue;
+    if (g_nidecDirectionPending) {
+        if ((uint32_t)(micros() - g_nidecDirectionChangedUs) < NIDEC_DIRECTION_DEADTIME_US) {
+            return;
+        }
+        g_nidecDirectionPending = false;
+    }
+
+    uint16_t frequencyHz = ((uint32_t)abs(controlOutput) * NIDEC_MAX_FREQUENCY_HZ
+                          + NIDEC_CONTROL_OUTPUT_MAX / 2)
+                         / NIDEC_CONTROL_OUTPUT_MAX;
+    uint16_t actualFrequencyHz = nidec_pfm_setFrequency(frequencyHz);
+    g_nidecFrequencyHz = requestedDirection ? actualFrequencyHz : -(int16_t)actualFrequencyHz;
 }
 
 void nidec_brake() {
-    // Hãm phanh điện từ tức thì (BRAKE = HIGH)
-    // Áp dụng khi fail-safe hoặc dừng khẩn cấp — không để coast khi xe đang nghiêng
+    // Hãm phanh điện từ tức thì, đồng thời ngắt xung PFM.
     digitalWrite(PIN_NIDEC_BRAKE, HIGH);
-    analogWrite(PIN_NIDEC_PWM, NIDEC_PWM_STOP);
-    g_nidecLastPwm = NIDEC_PWM_STOP;
+    nidec_pfm_stop();
+    g_nidecFrequencyHz = 0;
+    g_nidecDirectionPending = false;
 }
 
 void nidec_coast() {
-    // Nhả phanh, motor quay tự do — CHỈ dùng khi tắt nguồn an toàn
+    // Nhả phanh và ngắt xung PFM.
     digitalWrite(PIN_NIDEC_BRAKE, LOW);
-    analogWrite(PIN_NIDEC_PWM, NIDEC_PWM_STOP);
-    g_nidecLastPwm = NIDEC_PWM_STOP;
+    nidec_pfm_stop();
+    g_nidecFrequencyHz = 0;
+    g_nidecDirectionPending = false;
 }
 
-int16_t nidec_getLastPwm() {
-    return g_nidecLastPwm;
+int16_t nidec_getFrequencyHz() {
+    return g_nidecFrequencyHz;
 }
 
 // =============================================================================
 // L298N — Bánh sau
-// ENA = PWM tốc độ, IN1/IN2 = chiều quay
+// ENA = PWM tốc độ trên Timer0, IN1/IN2 = chiều quay
 // Giới hạn duty cycle tối đa để bảo vệ motor ở nguồn 3S 11.1–12.6V
 // =============================================================================
 void l298n_setSpeed(int16_t speed) {

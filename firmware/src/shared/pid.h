@@ -33,7 +33,7 @@ PidParams pid_getParams();
 // measurement: góc nghiêng thực tế từ IMU
 // gyroRate: vận tốc góc từ IMU (dùng cho D-term trực tiếp, tránh jitter vi phân)
 // dt_s: bước thời gian thực tế (giây)
-// Trả về: tín hiệu điều khiển đã clamp [-NIDEC_PWM_MAX_OUT, +NIDEC_PWM_MAX_OUT]
+// Trả về: lệnh điều khiển đã clamp [-NIDEC_CONTROL_OUTPUT_MAX, +NIDEC_CONTROL_OUTPUT_MAX]
 float pid_compute(float setpoint, float measurement, float gyroRate, float dt_s);
 
 // Reset tích phân và trạng thái (khi fail-safe hoặc khởi động lại)

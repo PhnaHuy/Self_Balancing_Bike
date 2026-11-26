@@ -332,9 +332,9 @@ public partial class MainForm : Form
         // 2. Vận tốc góc
         lblGaugeGyroValue.Text = string.Format(CultureInfo.InvariantCulture, "{0:+0.00;-0.00;0.00}°/s", t.GyroRate);
 
-        // 3. Xung PWM bánh đà
-        lblGaugePwmValue.Text = t.PwmWheel.ToString();
-        pbPwmLevel.Value = Math.Clamp(Math.Abs(t.PwmWheel), 0, 255);
+        // 3. Tần số PFM bánh đà
+        lblGaugePwmValue.Text = string.Format(CultureInfo.InvariantCulture, "{0} Hz", t.NidecFrequencyHz);
+        pbPwmLevel.Value = Math.Clamp(Math.Abs(t.NidecFrequencyHz), 0, pbPwmLevel.Maximum);
 
         // 4. Đẩy mẫu vào biểu đồ thời gian thực (M3)
         realtimeGraph.AddSample(t.Angle);

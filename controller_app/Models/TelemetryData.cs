@@ -2,7 +2,7 @@ namespace ControllerApp.Models;
 
 /// <summary>
 /// Đại diện cho bản tin telemetry phản hồi từ xe qua Bluetooth (M3).
-/// Định dạng chuẩn: D:<angle>,<gyro_rate>,<pwm_wheel>\n
+/// Định dạng chuẩn: D:<angle>,<gyro_rate>,<nidec_frequency_hz>\n
 /// </summary>
 public class TelemetryData
 {
@@ -23,9 +23,9 @@ public class TelemetryData
     public float GyroRate { get; }
 
     /// <summary>
-    /// Tín hiệu xung PWM điều khiển động cơ bánh đà (Reaction Wheel).
+    /// Tần số điều khiển PFM của động cơ bánh đà (Hz, dấu biểu thị chiều quay).
     /// </summary>
-    public int PwmWheel { get; }
+    public int NidecFrequencyHz { get; }
 
     /// <summary>
     /// Chuỗi thô gốc nhận được từ Serial.
@@ -42,17 +42,17 @@ public class TelemetryData
     /// </summary>
     public bool IsBalanced => Math.Abs(Angle) <= 3.0f;
 
-    public TelemetryData(float angle, float gyroRate, int pwmWheel, string rawMessage = "")
+    public TelemetryData(float angle, float gyroRate, int nidecFrequencyHz, string rawMessage = "")
     {
         Timestamp = DateTime.Now;
         Angle = angle;
         GyroRate = gyroRate;
-        PwmWheel = pwmWheel;
+        NidecFrequencyHz = nidecFrequencyHz;
         RawMessage = rawMessage;
     }
 
     public override string ToString()
     {
-        return $"[{Timestamp:HH:mm:ss.fff}] Góc: {Angle:F2}°, V_Góc: {GyroRate:F2}°/s, PWM: {PwmWheel}";
+        return $"[{Timestamp:HH:mm:ss.fff}] Góc: {Angle:F2}°, V_Góc: {GyroRate:F2}°/s, Tần số Nidec: {NidecFrequencyHz} Hz";
     }
 }
