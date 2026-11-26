@@ -1,6 +1,6 @@
 // =============================================================================
 // eeprom_store.h — Module M7: Lưu/đọc cấu hình từ EEPROM
-// Ghi: Kp, Ki, Kd, Angle_Offset kèm byte magic kiểm tra tính hợp lệ
+// Ghi: Kp, Ki, Kd, Angle_Offset, gyro bias kèm byte magic kiểm tra tính hợp lệ
 // =============================================================================
 #pragma once
 #include <Arduino.h>
@@ -10,6 +10,7 @@
 struct EepromConfig {
     PidParams pid;
     float     angleOffset;
+    float     gyroBiasDps;
 };
 
 // Đọc cấu hình từ EEPROM

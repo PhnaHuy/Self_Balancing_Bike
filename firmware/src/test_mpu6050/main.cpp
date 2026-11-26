@@ -3,9 +3,10 @@
 // Kiểm tra: kết nối I2C, đọc dữ liệu thô, in góc nghiêng ước lượng ra Serial
 //
 // Cách dùng (Serial Monitor ở 9600 baud, nhớ set "No line ending" hoặc "Newline"):
-//   Mỗi 100ms: in dòng "RAW: ax,ay,az,gx,gy,gz | ANGLE: X.XX° | GYRO: X.XX°/s"
+//   Chu kỳ lấy mẫu mục tiêu 10ms; tốc độ in thực tế phụ thuộc độ dài dòng và baudrate.
+//   Dòng dữ liệu: "RAW: ax,ay,az,gx,gy,gz | ANGLE: X.XX° | GYRO: X.XX°/s"
 //   Gõ "FLIP" → đảo chiều trục gia tốc (để xác định hướng lắp cảm biến)
-//   Gõ "CAL"  → lấy 50 mẫu trung bình làm Angle_Offset và in ra
+//   Gõ "CAL"  → lấy 50 mẫu trung bình làm Angle_Offset và gyro bias
 //   Gõ "COMP" → chuyển sang chế độ chỉ in góc Complementary Filter (ít nhiễu hơn)
 //   Gõ "RAW"  → quay lại chế độ in đầy đủ
 //
@@ -15,8 +16,8 @@
 #include <Wire.h>
 #include <MPU6050.h>
 
-#define SAMPLE_INTERVAL_MS  100UL
-#define COMP_ALPHA          0.98f
+#define SAMPLE_INTERVAL_MS  10UL
+#define COMP_FILTER_TIME_CONSTANT_S 0.245f
 #define ACCEL_SCALE_G       16384.0f
 #define GYRO_SCALE_DPS      131.0f
 #define MPU6050_I2C_ADDR    0x68
@@ -24,8 +25,10 @@
 static MPU6050  g_mpu(MPU6050_I2C_ADDR);
 static bool     g_axisFlipped  = false;
 static bool     g_compMode     = false;
+static bool     g_filterInitialized = false;
 static float    g_compAngle    = 0.0f;
 static float    g_angleOffset  = 0.0f;
+static float    g_gyroBiasDps  = 0.0f;
 static uint32_t g_lastSampleMs = 0;
 static uint32_t g_lastUs       = 0;
 
@@ -102,12 +105,17 @@ void loop() {
         // Đảo trục nếu được yêu cầu (kiểm tra hướng lắp)
         if (g_axisFlipped) ax = -ax;
 
-        float gyroRate = (float)gy / GYRO_SCALE_DPS;
+        float gyroRate = (float)gy / GYRO_SCALE_DPS - g_gyroBiasDps;
         float accelAngle = atan2f((float)ax, (float)az) * (180.0f / M_PI);
 
-        // Complementary Filter
-        g_compAngle = COMP_ALPHA * (g_compAngle + gyroRate * dt_s)
-                    + (1.0f - COMP_ALPHA) * accelAngle;
+        if (!g_filterInitialized) {
+            g_compAngle = accelAngle;
+            g_filterInitialized = true;
+        } else {
+            float alpha = COMP_FILTER_TIME_CONSTANT_S / (COMP_FILTER_TIME_CONSTANT_S + dt_s);
+            g_compAngle = alpha * (g_compAngle + gyroRate * dt_s)
+                        + (1.0f - alpha) * accelAngle;
+        }
         float displayAngle = g_compAngle - g_angleOffset;
 
         if (g_compMode) {
@@ -144,13 +152,17 @@ static void processCmd(char* cmd) {
     if (strcmp(cmd, "CAL") == 0) {
         Serial.println(F("CAL: Hold sensor UPRIGHT and still..."));
         g_angleOffset = doCalibrate(50);
+        g_compAngle = g_angleOffset;
+        g_filterInitialized = true;
+        g_lastUs = micros();
+        g_lastSampleMs = millis();
         Serial.print(F("CAL_DONE: Offset="));
         char buf[12];
         dtostrf(g_angleOffset, 6, 2, buf);
         Serial.println(buf);
     } else if (strcmp(cmd, "FLIP") == 0) {
         g_axisFlipped = !g_axisFlipped;
-        g_compAngle   = 0.0f;
+        g_filterInitialized = false;
         Serial.print(F("AXIS_FLIP: "));
         Serial.println(g_axisFlipped ? F("ON") : F("OFF"));
     } else if (strcmp(cmd, "COMP") == 0) {
@@ -170,12 +182,14 @@ static float doCalibrate(uint8_t numSamples) {
         delay(5);
     }
     float sum = 0.0f;
+    float gyroRateSum = 0.0f;
     for (uint8_t i = 0; i < numSamples; i++) {
         g_mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
         if (g_axisFlipped) ax = -ax;
         sum += atan2f((float)ax, (float)az) * (180.0f / M_PI);
+        gyroRateSum += (float)gy / GYRO_SCALE_DPS;
         delay(5);
     }
-    g_compAngle = 0.0f;  // Reset filter sau calibration
+    g_gyroBiasDps = gyroRateSum / (float)numSamples;
     return sum / (float)numSamples;
 }

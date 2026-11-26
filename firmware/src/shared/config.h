@@ -64,16 +64,18 @@
 #define SERVO_MAX_DEG      135    // Giới hạn cơ khí phải
 
 // --- Bộ lọc Complementary Filter ---
-// Alpha gần 1 → tin vào gyro nhiều hơn (phù hợp khi xe có rung động bánh đà)
-#define COMP_FILTER_ALPHA   0.98f
+// Chọn tau để alpha = tau / (tau + dt) xấp xỉ 0.98 tại chu kỳ PID 5ms.
+#define COMP_FILTER_TIME_CONSTANT_S 0.245f
 
 // --- EEPROM ---
-#define EEPROM_VALID_MAGIC  0xA5  // Byte magic kiểm tra dữ liệu EEPROM hợp lệ
+#define EEPROM_VALID_MAGIC_V1 0xA5
+#define EEPROM_VALID_MAGIC    0xA6
 #define EEPROM_ADDR_MAGIC      0
 #define EEPROM_ADDR_KP         1
 #define EEPROM_ADDR_KI         5
 #define EEPROM_ADDR_KD         9
 #define EEPROM_ADDR_OFFSET    13
+#define EEPROM_ADDR_GYRO_BIAS 17
 
 // --- Buffer lệnh Serial ---
 #define CMD_BUFFER_SIZE     48    // Tối đa 48 byte/dòng lệnh (đủ cho "P:200.00,50.00,50.00\n")

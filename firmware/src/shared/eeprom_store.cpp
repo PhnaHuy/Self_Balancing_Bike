@@ -26,21 +26,27 @@ static float readFloat(int addr) {
 }
 
 bool eeprom_load(EepromConfig* cfg) {
-    if (EEPROM.read(EEPROM_ADDR_MAGIC) != EEPROM_VALID_MAGIC) {
+    uint8_t magic = EEPROM.read(EEPROM_ADDR_MAGIC);
+    if (magic != EEPROM_VALID_MAGIC && magic != EEPROM_VALID_MAGIC_V1) {
         return false;  // EEPROM chưa được ghi lần nào, dùng default
     }
     cfg->pid.kp      = readFloat(EEPROM_ADDR_KP);
     cfg->pid.ki      = readFloat(EEPROM_ADDR_KI);
     cfg->pid.kd      = readFloat(EEPROM_ADDR_KD);
     cfg->angleOffset = readFloat(EEPROM_ADDR_OFFSET);
+    cfg->gyroBiasDps = (magic == EEPROM_VALID_MAGIC)
+        ? readFloat(EEPROM_ADDR_GYRO_BIAS)
+        : 0.0f;
     return true;
 }
 
 void eeprom_save(const EepromConfig& cfg) {
+    EEPROM.update(EEPROM_ADDR_MAGIC, 0x00);
     writeFloat(EEPROM_ADDR_KP,     cfg.pid.kp);
     writeFloat(EEPROM_ADDR_KI,     cfg.pid.ki);
     writeFloat(EEPROM_ADDR_KD,     cfg.pid.kd);
     writeFloat(EEPROM_ADDR_OFFSET, cfg.angleOffset);
+    writeFloat(EEPROM_ADDR_GYRO_BIAS, cfg.gyroBiasDps);
     // Ghi magic byte cuối cùng (đảm bảo dữ liệu hoàn chỉnh trước khi đánh dấu valid)
     EEPROM.update(EEPROM_ADDR_MAGIC, EEPROM_VALID_MAGIC);
 }

@@ -14,7 +14,7 @@ firmware/
     │   ├── pid.h / pid.cpp     # M5: PID Controller, Anti-Windup, Fail-Safe
     │   ├── actuators.h / .cpp  # M6: Nidec 24H, L298N, Servo
     │   ├── comm.h / comm.cpp   # M7: Parser lệnh \n, telemetry D:...
-    │   └── eeprom_store.h/.cpp # M7: Đọc/ghi EEPROM (Kp,Ki,Kd,Offset)
+    │   └── eeprom_store.h/.cpp # M7: Đọc/ghi EEPROM (PID, góc offset, gyro bias)
     │
     ├── main/                   # [env:main] Chương trình tích hợp đầy đủ
     │   └── main.cpp
@@ -118,7 +118,7 @@ python -m platformio device monitor -e test_nidec    # 9600 baud
 
 ### Quy trình test đề xuất (theo thứ tự)
 
-1. **test_mpu6050** → Xác nhận I2C hoạt động, kiểm tra hướng trục, chạy `CAL`
+1. **test_mpu6050** → Xác nhận I2C hoạt động, kiểm tra hướng trục, giữ cảm biến đứng yên rồi chạy `CAL`. Bộ lọc khởi tạo theo góc gia tốc và hiệu chuẩn cả bias gyro; trong firmware chính, gửi thêm `SAVE` để lưu offset và bias vào EEPROM. Có thể kết nối Controller App ở `9600` baud để xem đồ thị và góc hiện tại; PWM hiển thị `0` vì firmware này chỉ test cảm biến.
 2. **test_nidec** → Trên giá đỡ, kiểm tra DIR/BRAKE/PWM, chạy `RAMP`
 3. **test_hc05** → Ghép nối HC-05, kiểm tra echo hai chiều, dùng controller_app gửi `PING`
 4. **main** → Nạp chương trình chính, giữ xe đứng thẳng, gửi `CAL` từ app, quan sát đồ thị

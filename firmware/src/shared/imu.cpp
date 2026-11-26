@@ -11,11 +11,9 @@
 static MPU6050  g_mpu(MPU6050_I2C_ADDR);
 static ImuData  g_data     = {0.0f, 0.0f, false};
 static float    g_offset   = 0.0f;
+static float    g_gyroBiasDps = 0.0f;
 static bool     g_firstRun = true;
 
-// Hằng số trục: điều chỉnh nếu hướng lắp cảm biến trên khung xe khác
-// Trục Y của gia tốc kế dùng để tính góc nghiêng mặt phẳng đứng
-// (kiểm chứng qua test_mpu6050 trước khi gắn vào PID)
 #define ACCEL_SCALE_G       16384.0f   // ±2g range: 16384 LSB/g
 #define GYRO_SCALE_DPS      131.0f     // ±250°/s range: 131 LSB/(°/s)
 
@@ -55,9 +53,8 @@ void imu_update(uint32_t dt_us) {
     int16_t ax, ay, az, gx, gy, gz;
     g_mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
 
-    // Vận tốc góc quanh trục liên quan đến nghiêng (trục X IMU = trục pitch xe)
-    // Dấu: điều chỉnh nếu chiều nghiêng bị đảo
-    float gyroRateDps = (float)gy / GYRO_SCALE_DPS;   // °/s
+    // Vận tốc góc quanh trục nghiêng của IMU (gyro Y)
+    float gyroRateDps = (float)gy / GYRO_SCALE_DPS - g_gyroBiasDps;
 
     // Góc ước lượng từ Accelerometer (atan2 cho góc không bị giới hạn 0-90°)
     float accelAngle = atan2f((float)ax, (float)az) * (180.0f / M_PI);
@@ -69,12 +66,10 @@ void imu_update(uint32_t dt_us) {
         g_data.angle   = accelAngle - g_offset;
         g_firstRun     = false;
     } else {
-        // Complementary Filter:
-        //   - Gyro: tích phân chính xác ngắn hạn, nhưng tích lũy drift dài hạn
-        //   - Accel: đúng dài hạn nhưng nhiều nhiễu (rung bánh đà)
-        float rawAngle = COMP_FILTER_ALPHA * (g_data.angle + g_offset + gyroRateDps * dt_s)
-                       + (1.0f - COMP_FILTER_ALPHA) * accelAngle;
-        g_data.angle   = rawAngle - g_offset;
+        float alpha = COMP_FILTER_TIME_CONSTANT_S / (COMP_FILTER_TIME_CONSTANT_S + dt_s);
+        float accelAngleCorrected = accelAngle - g_offset;
+        g_data.angle = alpha * (g_data.angle + gyroRateDps * dt_s)
+                     + (1.0f - alpha) * accelAngleCorrected;
     }
 
     g_data.gyroRate = gyroRateDps;
@@ -92,14 +87,19 @@ float imu_calibrate(uint8_t numSamples) {
     }
 
     float sumAngle = 0.0f;
+    float sumGyroRate = 0.0f;
     int16_t ax, ay, az, gx, gy, gz;
     for (uint8_t i = 0; i < numSamples; i++) {
         g_mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
         sumAngle += atan2f((float)ax, (float)az) * (180.0f / M_PI);
+        sumGyroRate += (float)gy / GYRO_SCALE_DPS;
         delayMicroseconds(5000);
     }
 
     g_offset   = sumAngle / (float)numSamples;
+    g_gyroBiasDps = sumGyroRate / (float)numSamples;
+    g_data.angle = 0.0f;
+    g_data.gyroRate = 0.0f;
     g_firstRun = true;  // reset filter sau calibration
     return g_offset;
 }
@@ -111,4 +111,12 @@ void imu_setOffset(float offset) {
 
 float imu_getOffset() {
     return g_offset;
+}
+
+void imu_setGyroBias(float biasDps) {
+    g_gyroBiasDps = biasDps;
+}
+
+float imu_getGyroBias() {
+    return g_gyroBiasDps;
 }

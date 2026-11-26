@@ -1,1 +1,7 @@
 Development/
+
+# Visual Studio per-user state and caches
+.vs/
+
+# Machine-specific VS Code IntelliSense paths
+.vscode/c_cpp_properties.json

@@ -67,6 +67,7 @@ void setup() {
     if (eeprom_load(&cfg)) {
         pid_init(cfg.pid);
         imu_setOffset(cfg.angleOffset);
+        imu_setGyroBias(cfg.gyroBiasDps);
         comm_sendAck("OK:EEPROM_LOADED");
     } else {
         // Dùng thông số mặc định từ config.h
@@ -82,9 +83,6 @@ void setup() {
 
 // =============================================================================
 void loop() {
-    uint32_t nowUs = micros();
-    uint32_t nowMs = millis();
-
     // --- 1. Nhận và phân tích lệnh Serial (không chặn) ---
     comm_tick();
 
@@ -108,6 +106,10 @@ void loop() {
         g_steerAngle = mc.angle;
         comm_clearMoveCommand();
     }
+
+    // Cập nhật mốc thời gian sau các lệnh CAL/EEPROM có thể chặn vòng lặp.
+    uint32_t nowUs = micros();
+    uint32_t nowMs = millis();
 
     // --- 6. Áp dụng góc lái (Servo) ngay khi có lệnh M: (không phụ thuộc chu kỳ PID) ---
     servo_setAngle(g_steerAngle);
@@ -133,8 +135,6 @@ void loop() {
                 actuators_stopAll();
                 comm_sendAck("WARN:TILT_FAILSAFE");
             }
-            // Giữ trạng thái dừng cho đến khi góc trở về vùng an toàn
-            return;
         }
 
         // Phục hồi sau fail-safe khi góc quay về < 20° (trễ để tránh dao động ON/OFF)
@@ -175,7 +175,7 @@ static void doCalibration() {
     actuators_stopAll();
     comm_sendAck("CAL:SAMPLING");
 
-    // Lấy 50 mẫu (~250ms) để ước lượng góc cân bằng
+    // Lấy 50 mẫu (~250ms) để ước lượng offset góc và gyro bias
     imu_calibrate(50);
     comm_sendAck("OK:CAL_DONE");
 
@@ -186,7 +186,8 @@ static void doCalibration() {
 static void doSaveEeprom() {
     PidParams p   = pid_getParams();
     float     off = imu_getOffset();
-    EepromConfig cfg = { p, off };
+    float     gyroBias = imu_getGyroBias();
+    EepromConfig cfg = { p, off, gyroBias };
     eeprom_save(cfg);
     comm_sendAck("OK:SAVE_DONE");
 }

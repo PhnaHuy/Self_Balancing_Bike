@@ -82,6 +82,19 @@ static class Program
         Assert(TelemetryParser.IsSystemMessage("OK"), "M3.5a: Nhận diện thông điệp hệ thống 'OK'");
         Assert(TelemetryParser.IsSystemMessage("CAL_DONE"), "M3.5b: Nhận diện thông điệp 'CAL_DONE'");
         Assert(!TelemetryParser.IsSystemMessage("D:0,0,0"), "M3.5c: Phân biệt chính xác giữa telemetry và tin nhắn hệ thống");
+        Assert(!TelemetryParser.IsSystemMessage("D:invalid"), "M3.5d: Không xem bản tin D: lỗi định dạng là thông điệp hệ thống");
+
+        // Test 6: Nhận telemetry từ firmware test_mpu6050 ở cả hai chế độ
+        bool t6FullOk = TelemetryParser.TryParse("RAW:163,0,16383,0,131,0 | ANGLE:  1.25deg | GYRO:  1.00dps", out var t6Full);
+        Assert(t6FullOk && t6Full != null && Math.Abs(t6Full.Angle - 1.25f) < 0.001f
+            && Math.Abs(t6Full.GyroRate - 1.0f) < 0.001f && t6Full.PwmWheel == 0
+            && !TelemetryParser.IsSystemMessage("RAW:163,0,16383,0,131,0 | ANGLE:  1.25deg | GYRO:  1.00dps"),
+            "M3.6a: Parse output đầy đủ của test_mpu6050 và nhận diện là telemetry");
+
+        bool t6CompactOk = TelemetryParser.TryParse("ANGLE:  1.25  GYRO:  1.00", out var t6Compact);
+        Assert(t6CompactOk && t6Compact != null && Math.Abs(t6Compact.Angle - 1.25f) < 0.001f
+            && Math.Abs(t6Compact.GyroRate - 1.0f) < 0.001f && t6Compact.PwmWheel == 0,
+            "M3.6b: Parse output compact của test_mpu6050");
 
         // --- TEST MODULE M2: PID & CultureInfo.InvariantCulture ---
         Console.WriteLine("\n--- Kiểm thử Module M2: PidParameters & InvariantCulture ---");

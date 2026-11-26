@@ -25,7 +25,7 @@ void imu_update(uint32_t dt_us);
 ImuData imu_getData();
 
 // Hiệu chuẩn điểm cân bằng: lấy trung bình N mẫu góc hiện tại làm Angle_Offset
-// Gọi khi xe được giữ đứng thẳng trên giá đỡ
+// Gọi khi cảm biến đứng yên; đồng thời hiệu chuẩn bias gyro trục nghiêng.
 // Trả về giá trị Angle_Offset vừa tính
 float imu_calibrate(uint8_t numSamples);
 
@@ -34,3 +34,7 @@ void imu_setOffset(float offset);
 
 // Lấy Angle_Offset hiện tại
 float imu_getOffset();
+
+// Nạp/lấy bias vận tốc góc theo độ/giây
+void imu_setGyroBias(float biasDps);
+float imu_getGyroBias();
