@@ -101,13 +101,13 @@ cd firmware
 # Build chương trình chính
 python -m platformio run -e main
 
-# Nạp chương trình chính lên Arduino (thay COM3 đúng cổng)
-python -m platformio run -e main --target upload --upload-port COM3
+# Nạp chương trình chính lên Arduino (thay COM8 đúng cổng)
+python -m platformio run -e main --target upload --upload-port COM8
 
 # Build và nạp từng test độc lập
-python -m platformio run -e test_hc05   --target upload --upload-port COM3
-python -m platformio run -e test_mpu6050 --target upload --upload-port COM3
-python -m platformio run -e test_nidec  --target upload --upload-port COM3
+python -m platformio run -e test_hc05   --target upload --upload-port COM8
+python -m platformio run -e test_mpu6050 --target upload --upload-port COM8
+python -m platformio run -e test_nidec  --target upload --upload-port COM8
 
 # Mở Serial Monitor (giám sát output)
 python -m platformio device monitor -e main          # 38400 baud

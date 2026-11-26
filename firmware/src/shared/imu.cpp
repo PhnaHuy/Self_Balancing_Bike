@@ -8,7 +8,7 @@
 #include <Wire.h>
 #include <MPU6050.h>
 
-static MPU6050  g_mpu;
+static MPU6050  g_mpu(MPU6050_I2C_ADDR);
 static ImuData  g_data     = {0.0f, 0.0f, false};
 static float    g_offset   = 0.0f;
 static bool     g_firstRun = true;
@@ -21,13 +21,22 @@ static bool     g_firstRun = true;
 
 bool imu_init() {
     Wire.begin();
-    // Tốc độ I2C 400kHz để giảm thời gian đọc (từ ~1.5ms xuống ~0.4ms/lần)
-    Wire.setClock(400000UL);
+    delay(100);                 // Chờ bộ dao động nội (PLL) và mạch reset MPU6050 ổn định
+    Wire.setClock(100000UL);    // 100kHz để ổn định tín hiệu I2C trên dây cắm thực tế
+
+    // Kiểm tra ping I2C vật lý tại địa chỉ 0x68
+    Wire.beginTransmission(MPU6050_I2C_ADDR);
+    if (Wire.endTransmission() != 0) {
+        return false;
+    }
 
     g_mpu.initialize();
 
+    // Bỏ qua kiểm tra cứng WHO_AM_I (testConnection) để tương thích các chip clone
+    // (0x70, 0x72, 0x98...) vẫn giao tiếp bình thường tại địa chỉ I2C 0x68
     if (!g_mpu.testConnection()) {
-        return false;
+        Serial.print(F("WARN:MPU6050_WHO_AM_I=0x"));
+        Serial.println(g_mpu.getDeviceID(), HEX);
     }
 
     // Cấu hình dải đo an toàn cho xe cân bằng

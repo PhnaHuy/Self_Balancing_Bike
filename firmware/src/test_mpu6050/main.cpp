@@ -19,8 +19,9 @@
 #define COMP_ALPHA          0.98f
 #define ACCEL_SCALE_G       16384.0f
 #define GYRO_SCALE_DPS      131.0f
+#define MPU6050_I2C_ADDR    0x68
 
-static MPU6050  g_mpu;
+static MPU6050  g_mpu(MPU6050_I2C_ADDR);
 static bool     g_axisFlipped  = false;
 static bool     g_compMode     = false;
 static float    g_compAngle    = 0.0f;
@@ -37,14 +38,29 @@ static float doCalibrate(uint8_t numSamples);
 void setup() {
     Serial.begin(9600);
     Wire.begin();
-    Wire.setClock(400000UL);
+    delay(100);                 // Chờ bộ dao động nội (PLL) và mạch reset MPU6050 ổn định
+    Wire.setClock(100000UL);    // Hạ xuống 100kHz để tránh méo xung trên dây cắm thực tế
 
     Serial.println(F("MPU6050 TEST"));
 
-    g_mpu.initialize();
-    if (!g_mpu.testConnection()) {
-        Serial.println(F("ERROR: MPU6050 NOT FOUND! Check wiring: SDA=A4, SCL=A5, VCC=3.3V"));
+    // Kiểm tra ping I2C cơ bản tại địa chỉ 0x68
+    Wire.beginTransmission(MPU6050_I2C_ADDR);
+    if (Wire.endTransmission() != 0) {
+        Serial.println(F("ERROR: I2C 0x68 NOT RESPONDING! Check wiring: SDA=A4, SCL=A5, VCC=3.3V/5V"));
         while (true) delay(1000);
+    }
+
+    g_mpu.initialize();
+
+    // Đọc và in giá trị WHO_AM_I để debug chip chính hãng vs clone/tương thích
+    uint8_t devId = g_mpu.getDeviceID();
+    Serial.print(F("WHO_AM_I (DeviceID): 0x"));
+    Serial.println(devId, HEX);
+
+    if (!g_mpu.testConnection()) {
+        // Nhiều chip MPU6050 lô mới/clone trả về WHO_AM_I khác 0x68 (0x70, 0x72, 0x98...)
+        // nhưng vẫn hoạt động bình thường → chỉ cảnh báo và tiếp tục chạy
+        Serial.println(F("WARNING: testConnection() failed (non-0x68 WHO_AM_I), continuing anyway..."));
     }
 
     g_mpu.setFullScaleAccelRange(MPU6050_ACCEL_FS_2);
